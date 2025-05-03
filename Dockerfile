@@ -1,5 +1,5 @@
 # Usa una imagen base con Nginx + PHP-FPM
-FROM richarvey/nginx-php-fpm:php82
+FROM richarvey/nginx-php-fpm:latest
 
 # Directorio de trabajo
 WORKDIR /var/www/html
