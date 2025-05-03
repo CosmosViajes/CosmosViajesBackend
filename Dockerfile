@@ -1,30 +1,17 @@
-# Usa una imagen base con Nginx + PHP-FPM
 FROM richarvey/nginx-php-fpm:latest
 
-# Directorio de trabajo
+# Instala dependencias y extensiones
+RUN apt-get update && apt-get install -y \
+    libpq-dev \
+    && docker-php-ext-install pdo pdo_pgsql \
+    && docker-php-ext-enable pdo_pgsql
+
 WORKDIR /var/www/html
 
-# Copia todo el proyecto al contenedor
 COPY . .
 
-# Permisos para el script de despliegue
-RUN chmod +x scripts/00-laravel-deploy.sh
-
-# Configuración del entorno
-ENV SKIP_COMPOSER 1
-ENV WEBROOT /var/www/html/public
-ENV PHP_ERRORS_STDERR 1
-ENV RUN_SCRIPTS 1
-ENV REAL_IP_HEADER 1
-
 # Configuración de Laravel
-ENV APP_ENV production
-ENV APP_DEBUG false
-ENV LOG_CHANNEL stderr
-ENV COMPOSER_ALLOW_SUPERUSER 1
+ENV APP_ENV=production
+ENV APP_DEBUG=false
 
-# Puerto expuesto (necesario para Render)
-EXPOSE 80
-
-# Comando de inicio
 CMD ["/start.sh"]
