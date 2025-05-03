@@ -16,6 +16,8 @@ return [
     |
     */
 
+    'schema' => env('DB_SCHEMA', 'public'),
+
     'default' => env('DB_CONNECTION', 'sqlite'),
 
     /*
