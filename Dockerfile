@@ -2,8 +2,9 @@
 FROM richarvey/nginx-php-fpm:latest
 
 
-RUN apt-get update && apt-get install -y libpq-dev \
-    && docker-php-ext-install pdo pdo_pgsql
+RUN apt-get update
+RUN apt-get install -y libpq-dev
+RUN docker-php-ext-install pdo pdo_pgsql
 
 # Directorio de trabajo
 WORKDIR /var/www/html
