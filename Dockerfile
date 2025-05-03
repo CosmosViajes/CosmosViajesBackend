@@ -17,7 +17,7 @@ RUN composer install --no-dev --optimize-autoloader
 # Configuración de Nginx
 COPY default.conf /etc/nginx/sites-available/default
 RUN mkdir -p /etc/nginx/sites-enabled/ \
-    && ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/
+    && ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/
 
 # Script de inicio
 COPY start.sh /start.sh
