@@ -10,8 +10,6 @@ COPY . .
 # Permisos para el script de despliegue
 RUN chmod +x scripts/00-laravel-deploy.sh
 
-RUN ./scripts/00-laravel-deploy.sh
-
 # Configuración del entorno
 ENV SKIP_COMPOSER 1
 ENV WEBROOT /var/www/html/public
