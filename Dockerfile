@@ -1,13 +1,16 @@
 FROM php:8.2-fpm
 
-# Instala Nginx y dependencias de PostgreSQL
-RUN apt-get update \
-    && apt-get install -y nginx libpq-dev \
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    libpq-dev \
+    && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
     && docker-php-ext-install pdo pdo_pgsql
 
-# Copia tu código al contenedor
+# Copia el proyecto y instala dependencias
 WORKDIR /var/www/html
 COPY . .
+RUN composer install --no-dev --optimize-autoloader
 
 # Copia la configuración de Nginx y el script de inicio
 COPY default.conf /etc/nginx/sites-available/default
