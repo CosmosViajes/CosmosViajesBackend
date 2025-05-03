@@ -1,6 +1,10 @@
 # Usa una imagen base con Nginx + PHP-FPM
 FROM richarvey/nginx-php-fpm:latest
 
+
+RUN apt-get update && apt-get install -y libpq-dev \
+    && docker-php-ext-install pdo pdo_pgsql
+
 # Directorio de trabajo
 WORKDIR /var/www/html
 
@@ -9,6 +13,8 @@ COPY . .
 
 # Permisos para el script de despliegue
 RUN chmod +x scripts/00-laravel-deploy.sh
+
+RUN ./scripts/00-laravel-deploy.sh
 
 # Configuración del entorno
 ENV SKIP_COMPOSER 1
