@@ -1,10 +1,6 @@
 # Usa una imagen base con Nginx + PHP-FPM
 FROM richarvey/nginx-php-fpm:latest
 
-
-RUN apt-get install -y libpq-dev
-RUN docker-php-ext-install pdo pdo_pgsql
-
 # Directorio de trabajo
 WORKDIR /var/www/html
 
