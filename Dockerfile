@@ -8,10 +8,11 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /var/www/html
-COPY . .
 
 # Configuración de Laravel
 ENV APP_ENV=production
 ENV APP_DEBUG=false
 
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
 CMD ["/start.sh"]
