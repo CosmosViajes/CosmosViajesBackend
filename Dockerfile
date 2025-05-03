@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /var/www/html
 COPY . .
 RUN composer install --no-dev --optimize-autoloader \
-    && php artisan migrate:fresh --force
+    && php artisan migrate --force
 
 
 # Configuración de Nginx
