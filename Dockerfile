@@ -12,7 +12,8 @@ RUN apt-get update && apt-get install -y \
 # Copia el proyecto y configura Nginx
 WORKDIR /var/www/html
 COPY . .
-RUN composer install --no-dev --optimize-autoloader
+RUN composer install --no-dev --optimize-autoloader \
+    && php artisan migrate --force
 
 # Configuración de Nginx
 COPY default.conf /etc/nginx/sites-available/default
@@ -29,7 +30,5 @@ RUN mkdir -p storage/framework/{cache,sessions,views} \
     && chown -R www-data:www-data storage bootstrap/cache
 
 EXPOSE 80
-
-RUN php artisan migrate --force
 
 CMD ["/start.sh"]
