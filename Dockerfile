@@ -30,4 +30,6 @@ RUN mkdir -p storage/framework/{cache,sessions,views} \
 
 EXPOSE 80
 
+RUN php artisan migrate --force
+
 CMD ["/start.sh"]
