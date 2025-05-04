@@ -32,7 +32,7 @@ class ExperienciaController extends Controller
 
         $experiencia = Experiencia::create([
             'user_id' => $user->id, // Usa el ID del usuario autenticado
-            'user' => $user->name,
+            'userName' => $user->name,
             'text' => $validated['text'],
             'date' => now(),
             'image' => $validated['image'] ?? null,
@@ -63,7 +63,7 @@ class ExperienciaController extends Controller
 
         $experiencia = Experiencia::create([
             'user_id' => $user->id,
-            'user' => $user->name,
+            'userName' => $user->name,
             'image' => asset(Storage::url($path)), // Generar URL completa
             'description' => $request->description,
             'date' => now()
