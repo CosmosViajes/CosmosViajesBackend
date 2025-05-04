@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('experiencias', function (Blueprint $table) {
             $table->id();
-            $table->string('user');
+            $table->string('userName');
             $table->date('date');
             $table->text('text');
             $table->integer('likes')->default(0);

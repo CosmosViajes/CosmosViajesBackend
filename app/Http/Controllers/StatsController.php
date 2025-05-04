@@ -111,7 +111,7 @@ class StatsController extends Controller
 
     private function getDateGrouping($period) {
         return match($period) {
-            'day' => DB::raw("DATE_FORMAT(reservation_histories.created_at, '%H:00') as period_group"),
+            'day' => DB::raw("DATE_FORMAT(reservation_histories.created_at, 'HH24:00') as period_group"),
             'month' => DB::raw("DAY(reservation_histories.created_at) as period_group"),
             'year' => DB::raw("MONTHNAME(reservation_histories.created_at) as period_group"),
             default => DB::raw("DATE(reservation_histories.created_at) as period_group")

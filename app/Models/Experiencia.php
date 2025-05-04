@@ -10,7 +10,7 @@ class Experiencia extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id', 'user', 'text', 'date', 'likes', 'image', 'description'
+        'user_id', 'userName', 'text', 'date', 'likes', 'image', 'description'
     ];
     
     public function user() {
