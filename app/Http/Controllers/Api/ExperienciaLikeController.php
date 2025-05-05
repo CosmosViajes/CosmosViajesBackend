@@ -11,6 +11,7 @@ class ExperienciaLikeController extends Controller
 {
     public function toggle($id, $userId)
     {
+
         $like = ExperienciaLike::where('experiencia_id', $id)
                             ->where('user_id', $userId)
                             ->first();
@@ -38,8 +39,14 @@ class ExperienciaLikeController extends Controller
 
     public function userLikes(Request $request)
     {
-        $userId = $request->user()->id;
+        // Verificar autenticación primero
+        if (!$request->user()) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        $userId = $request->user()->id; // Ahora seguro que no es null
         $likes = ExperienciaLike::where('user_id', $userId)->pluck('experiencia_id')->toArray();
+        
         return response()->json($likes);
     }
 }
