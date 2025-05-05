@@ -33,10 +33,10 @@ class StatsController extends Controller
     private function applyDateFilters($query, $period, $date, $month, $year) {
         $query->when($period === 'day', function ($q) use ($date) {
             $q->whereBetween('reservation_histories.created_at', [
-                $date->copy()->startOfDay(),
-                $date->copy()->endOfDay()
+                $date->copy()->startOfDay()->toDateTimeString(),
+                $date->copy()->endOfDay()->toDateTimeString()
             ]);
-        })
+        })        
         ->when($period === 'month', function ($q) use ($month) {
             $q->whereBetween('reservation_histories.created_at', [
                 $month->copy()->startOfMonth(),
@@ -111,12 +111,12 @@ class StatsController extends Controller
 
     private function getDateGrouping($period) {
         return match($period) {
-            'day' => DB::raw("DATE_FORMAT(reservation_histories.created_at, 'HH24:00') as period_group"),
-            'month' => DB::raw("DAY(reservation_histories.created_at) as period_group"),
-            'year' => DB::raw("MONTHNAME(reservation_histories.created_at) as period_group"),
-            default => DB::raw("DATE(reservation_histories.created_at) as period_group")
+            'day' => DB::raw("TO_CHAR(reservation_histories.created_at, 'HH24:00') as period_group"),
+            'month' => DB::raw("EXTRACT(DAY FROM reservation_histories.created_at) as period_group"),
+            'year' => DB::raw("TO_CHAR(reservation_histories.created_at, 'Month') as period_group"),
+            default => DB::raw("TO_CHAR(reservation_histories.created_at, 'YYYY-MM-DD') as period_group")
         };
-    }   
+    }      
 
     private function getAllTrips($period, $date, $month, $year) {
         $query = ReservationHistory::with('trip')
