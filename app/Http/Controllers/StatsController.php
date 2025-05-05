@@ -113,10 +113,11 @@ class StatsController extends Controller
         return match($period) {
             'day' => DB::raw("TO_CHAR(reservation_histories.created_at, 'HH24:00') as period_group"),
             'month' => DB::raw("EXTRACT(DAY FROM reservation_histories.created_at) as period_group"),
-            'year' => DB::raw("TO_CHAR(reservation_histories.created_at, 'Month') as period_group"),
+            'year' => DB::raw("EXTRACT(MONTH FROM reservation_histories.created_at) as period_group"),
             default => DB::raw("TO_CHAR(reservation_histories.created_at, 'YYYY-MM-DD') as period_group")
         };
-    }      
+    }
+          
 
     private function getAllTrips($period, $date, $month, $year) {
         $query = ReservationHistory::with('trip')
