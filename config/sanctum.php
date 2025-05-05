@@ -21,7 +21,7 @@ return [
     #    Sanctum::currentApplicationUrlWithPort()
     #))),
 
-    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', 'https://cosmoviajes.netlify.app, http://localhost:4200/')),
+    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', 'https://cosmoviajes.netlify.app')),
 
     /*
     |--------------------------------------------------------------------------
