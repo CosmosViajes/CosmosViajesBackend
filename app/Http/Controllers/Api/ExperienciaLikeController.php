@@ -39,10 +39,6 @@ class ExperienciaLikeController extends Controller
 
     public function userLikes(Request $request)
     {
-        // Verificar autenticación primero
-        if (!$request->user()) {
-            return response()->json(['error' => 'Unauthenticated'], 401);
-        }
 
         $userId = $request->user()->id; // Ahora seguro que no es null
         $likes = ExperienciaLike::where('user_id', $userId)->pluck('experiencia_id')->toArray();
