@@ -5,7 +5,7 @@ use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));
 
-#header("Access-Control-Allow-Origin: https://cosmoviajes.netlify.app");
+#header("Access-Control-Allow-Origin: https://cosmoviajes.netlify.app, http://localhost:4200");
 #header("Access-Control-Allow-Credentials: true");
 #header("Access-Control-Allow-Methods: PUT, POST, DELETE, OPTIONS");
 #header("Access-Control-Max-Age: 1000");
