@@ -4,8 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
-use Kreait\Firebase\Factory;
-use Kreait\Firebase\ServiceAccount;
+use Illuminate\Support\Facades\Http;
 
 class UserController extends Controller
 {
@@ -34,64 +33,45 @@ class UserController extends Controller
     }
 
     public function update(Request $request, $id)
-{
-    $user = User::findOrFail($id);
+    {
+        $user = User::findOrFail($id);
 
-    $rules = [];
-    if ($request->has('name')) {
-        $rules['name'] = 'required|string|max:255';
-    }
-    if ($request->has('email')) {
-        $rules['email'] = 'required|email|unique:users,email,'.$user->id;
-    }
-    if ($request->hasFile('photo')) {
-        $rules['photo'] = 'required|file|image|max:2048';
-    }
+        $rules = [];
+        if ($request->has('name')) {
+            $rules['name'] = 'required|string|max:255';
+        }
+        if ($request->has('email')) {
+            $rules['email'] = 'required|email|unique:users,email,'.$user->id;
+        }
+        if ($request->hasFile('photo')) {
+            $rules['photo'] = 'required|file|image|max:2048';
+        }
 
-    $validatedData = $request->validate($rules);
+        $validatedData = $request->validate($rules);
 
-    if ($request->has('name')) {
-        $user->name = $validatedData['name'];
-    }
-    if ($request->has('email')) {
-        $user->email = $validatedData['email'];
-    }
+        if ($request->has('name')) {
+            $user->name = $validatedData['name'];
+        }
+        if ($request->has('email')) {
+            $user->email = $validatedData['email'];
+        }
 
-    if ($request->hasFile('photo')) {
-        // Configurar Firebase
-        $factory = (new Factory)->withServiceAccount(config('firebase.credentials.file'));
-        $storage = $factory->createStorage();
-        $bucket = $storage->getBucket();
+        if ($request->hasFile('photo')) {
+            // Subir imagen a ImgBB
+            $response = Http::asMultipart()->post('https://api.imgbb.com/1/upload', [
+                'key' => env('IMGBB_API_KEY'), // Añade tu clave de ImgBB en .env
+                'image' => base64_encode(file_get_contents($request->file('photo')->getRealPath())),
+            ]);
 
-        // Eliminar imagen anterior si existe
-        if ($user->photo) {
-            try {
-                // Extraer el path de Firebase de la URL almacenada
-                $oldPath = parse_url($user->photo, PHP_URL_PATH);
-                $oldPath = ltrim($oldPath, '/'); // Quitar la barra inicial
-                $bucket->object($oldPath)->delete();
-            } catch (\Exception $e) {
-                // Manejar error si la imagen no existe en Firebase
-                \Log::error("Error eliminando imagen de Firebase: " . $e->getMessage());
+            if ($response->successful()) {
+                $imageUrl = $response->json('data.url');
+
+                // Opcional: eliminar imagen anterior si guardas URLs y quieres limpiar
+
+                $user->photo = $imageUrl;
+            } else {
+                return response()->json(['error' => 'Error subiendo imagen a ImgBB'], 500);
             }
-        }
-
-        // Subir nueva imagen a Firebase
-        try {
-            $image = $request->file('photo');
-            $firebasePath = 'profiles/' . uniqid() . '.' . $image->getClientOriginalExtension();
-            
-            $stream = fopen($image->getRealPath(), 'r');
-            $bucket->upload($stream, ['name' => $firebasePath]);
-            
-            // Obtener URL pública
-            $user->photo = 'https://storage.googleapis.com/' . $bucket->name() . '/' . $firebasePath;
-            
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error subiendo la imagen: ' . $e->getMessage()
-            ], 500);
-        }
         }
 
         $user->save();
