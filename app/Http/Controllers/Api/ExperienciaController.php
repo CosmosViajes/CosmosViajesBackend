@@ -5,9 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Experiencia;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Kreait\Firebase\Factory;
-use Kreait\Firebase\ServiceAccount;
+use Illuminate\Support\Facades\Http;
+
 
 class ExperienciaController extends Controller
 {
@@ -58,55 +57,27 @@ class ExperienciaController extends Controller
     
         $user = $request->user();
         
-        // Configurar Firebase
-        $factory = (new Factory)->withServiceAccount(base_path(env('FIREBASE_CREDENTIALS')));
-        $storage = $factory->createStorage();
-        $bucket = $storage->getBucket();
-    
-        // Subir imagen a Firebase
-        $image = $request->file('image');
-        $firebasePath = 'experiencias/' . uniqid() . '.' . $image->getClientOriginalExtension();
-        
-        $stream = fopen($image->getRealPath(), 'r');
-        $bucket->upload($stream, ['name' => $firebasePath]);
-        
-        // Obtener URL pública
-        $imageUrl = 'https://storage.googleapis.com/' . $bucket->name() . '/' . $firebasePath;
-    
-        $experiencia = Experiencia::create([
-            'user_id' => $user->id,
-            'userName' => $user->name,
-            'image' => $imageUrl,
-            'description' => $request->description,
-            'date' => now()
-        ]);
-    
-        return response()->json($experiencia);
-    }
-
-    // Método para eliminar imágenes
-    public function deleteImage($id)
-    {
-        try {
-            $experiencia = Experiencia::findOrFail($id);
-            
-            // Eliminar archivo físico
-            if(Storage::disk('public')->exists($experiencia->image)) {
-                Storage::disk('public')->delete($experiencia->image);
-            }
-            
-            // Eliminar registro de la base de datos
-            $experiencia->delete();
-
-            return response()->json([
-                'message' => 'Imagen eliminada exitosamente'
+        // Subir imagen a ImgBB
+        $response = Http::asMultipart()
+            ->post('https://api.imgbb.com/1/upload', [
+                'key' => env('IMGBB_API_KEY'),
+                'image' => fopen($request->file('image')->path(), 'r'),
             ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error al eliminar la imagen',
-                'error' => $e->getMessage()
-            ], 500);
+    
+        if ($response->successful()) {
+            $imageUrl = $response->json('data.url');
+    
+            $experiencia = Experiencia::create([
+                'user_id' => $user->id,
+                'userName' => $user->name,
+                'image' => $imageUrl,
+                'description' => $request->description,
+                'date' => now()
+            ]);
+    
+            return response()->json($experiencia);
         }
+    
+        return response()->json(['error' => 'Error subiendo imagen'], 500);
     }
 }
