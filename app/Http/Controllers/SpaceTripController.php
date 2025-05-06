@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\SpaceTrip;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Kreait\Firebase\Factory;
+use Kreait\Firebase\ServiceAccount;
 
 class SpaceTripController extends Controller {
     
@@ -65,19 +67,25 @@ class SpaceTripController extends Controller {
 
         // Manejo de la imagen
         if ($request->hasFile('photo')) {
-            $rules['photo'] = 'required|image|mimes:jpeg,png,jpg,gif|max:2048';
-            $validatedPhoto = $request->validate($rules);
-            
+            $factory = (new Factory)->withServiceAccount(base_path(env('FIREBASE_CREDENTIALS')));
+            $storage = $factory->createStorage();
+            $bucket = $storage->getBucket();
+    
             // Eliminar imagen anterior
             if ($trip->photo) {
-                $oldPath = str_replace(asset(''), '', $trip->photo); // Eliminar dominio
-                $oldPath = str_replace('storage/', '', $oldPath); // Eliminar prefijo storage/
-                Storage::disk('public')->delete($oldPath);
+                $oldPath = parse_url($trip->photo, PHP_URL_PATH);
+                $oldPath = ltrim($oldPath, '/');
+                $bucket->object($oldPath)->delete();
             }
-
-            // Guardar nueva imagen
-            $path = $request->file('photo')->store('trips', 'public');
-            $trip->photo = asset('storage/' . $path); // URL completa con asset
+    
+            // Subir nueva imagen
+            $image = $request->file('photo');
+            $firebasePath = 'trips/' . uniqid() . '.' . $image->getClientOriginalExtension();
+            
+            $stream = fopen($image->getRealPath(), 'r');
+            $bucket->upload($stream, ['name' => $firebasePath]);
+            
+            $trip->photo = 'https://storage.googleapis.com/' . $bucket->name() . '/' . $firebasePath;
         }
 
         // Validar campos restantes

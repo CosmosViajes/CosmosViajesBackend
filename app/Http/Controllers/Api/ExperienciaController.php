@@ -6,7 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Experiencia;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-
+use Kreait\Firebase\Factory;
+use Kreait\Firebase\ServiceAccount;
 
 class ExperienciaController extends Controller
 {
@@ -49,26 +50,37 @@ class ExperienciaController extends Controller
         return response()->json(null, 204);
     }
 
-    public function uploadImage(Request $request)
-    {
+    public function uploadImage(Request $request) {
         $request->validate([
             'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
             'description' => 'required|string'
         ]);
-
+    
         $user = $request->user();
-
-        // Cambiar 'galeria' por 'profiles'
-        $path = $request->file('image')->store('profiles', 'public');
-
+        
+        // Configurar Firebase
+        $factory = (new Factory)->withServiceAccount(base_path(env('FIREBASE_CREDENTIALS')));
+        $storage = $factory->createStorage();
+        $bucket = $storage->getBucket();
+    
+        // Subir imagen a Firebase
+        $image = $request->file('image');
+        $firebasePath = 'experiencias/' . uniqid() . '.' . $image->getClientOriginalExtension();
+        
+        $stream = fopen($image->getRealPath(), 'r');
+        $bucket->upload($stream, ['name' => $firebasePath]);
+        
+        // Obtener URL pública
+        $imageUrl = 'https://storage.googleapis.com/' . $bucket->name() . '/' . $firebasePath;
+    
         $experiencia = Experiencia::create([
             'user_id' => $user->id,
             'userName' => $user->name,
-            'image' => asset(Storage::url($path)), // Generar URL completa
+            'image' => $imageUrl,
             'description' => $request->description,
             'date' => now()
         ]);
-
+    
         return response()->json($experiencia);
     }
 

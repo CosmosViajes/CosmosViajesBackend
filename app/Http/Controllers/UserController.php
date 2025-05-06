@@ -4,7 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
-use Illuminate\Support\Facades\Storage;
+use Kreait\Firebase\Factory;
+use Kreait\Firebase\ServiceAccount;
 
 class UserController extends Controller
 {
@@ -33,39 +34,64 @@ class UserController extends Controller
     }
 
     public function update(Request $request, $id)
-    {
-        $user = User::findOrFail($id);
+{
+    $user = User::findOrFail($id);
 
-        $rules = [];
-        if ($request->has('name')) {
-            $rules['name'] = 'required|string|max:255';
-        }
-        if ($request->has('email')) {
-            $rules['email'] = 'required|email|unique:users,email,'.$user->id;
-        }
-        if ($request->hasFile('photo')) {
-            $rules['photo'] = 'required|file|image|max:2048';
-        }
+    $rules = [];
+    if ($request->has('name')) {
+        $rules['name'] = 'required|string|max:255';
+    }
+    if ($request->has('email')) {
+        $rules['email'] = 'required|email|unique:users,email,'.$user->id;
+    }
+    if ($request->hasFile('photo')) {
+        $rules['photo'] = 'required|file|image|max:2048';
+    }
 
-        $validatedData = $request->validate($rules);
+    $validatedData = $request->validate($rules);
 
-        if ($request->has('name')) {
-            $user->name = $validatedData['name'];
-        }
-        if ($request->has('email')) {
-            $user->email = $validatedData['email'];
-        }
+    if ($request->has('name')) {
+        $user->name = $validatedData['name'];
+    }
+    if ($request->has('email')) {
+        $user->email = $validatedData['email'];
+    }
 
-        if ($request->hasFile('photo')) {
-            // Eliminar imagen anterior si existe
-            if ($user->photo) {
-                $oldPath = str_replace(asset('storage/'), '', $user->photo);
-                Storage::disk('public')->delete($oldPath);
+    if ($request->hasFile('photo')) {
+        // Configurar Firebase
+        $factory = (new Factory)->withServiceAccount(config('firebase.credentials.file'));
+        $storage = $factory->createStorage();
+        $bucket = $storage->getBucket();
+
+        // Eliminar imagen anterior si existe
+        if ($user->photo) {
+            try {
+                // Extraer el path de Firebase de la URL almacenada
+                $oldPath = parse_url($user->photo, PHP_URL_PATH);
+                $oldPath = ltrim($oldPath, '/'); // Quitar la barra inicial
+                $bucket->object($oldPath)->delete();
+            } catch (\Exception $e) {
+                // Manejar error si la imagen no existe en Firebase
+                \Log::error("Error eliminando imagen de Firebase: " . $e->getMessage());
             }
-    
-            // Guardar nueva imagen
-            $path = $request->file('photo')->store('profiles', 'public');
-            $user->photo = asset("storage/$path");
+        }
+
+        // Subir nueva imagen a Firebase
+        try {
+            $image = $request->file('photo');
+            $firebasePath = 'profiles/' . uniqid() . '.' . $image->getClientOriginalExtension();
+            
+            $stream = fopen($image->getRealPath(), 'r');
+            $bucket->upload($stream, ['name' => $firebasePath]);
+            
+            // Obtener URL pública
+            $user->photo = 'https://storage.googleapis.com/' . $bucket->name() . '/' . $firebasePath;
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error subiendo la imagen: ' . $e->getMessage()
+            ], 500);
+        }
         }
 
         $user->save();
@@ -74,21 +100,6 @@ class UserController extends Controller
             'user' => $user,
             'message' => 'Actualización exitosa'
         ]);
-    }
-
-    /**
-     * Recuperar y mostrar la foto desde la base de datos.
-     */
-    public function getPhoto($userId)
-    {
-        $user = User::where('id', $userId)->first();
-
-        if (!$user || !$user->photo) {
-            return response()->json(['message' => 'Foto no encontrada'], 404);
-        }
-
-        // Retornar la imagen con el tipo MIME correcto
-        return response($user->photo)->header('Content-Type', 'image/jpeg');
     }
 
     public function getUserData($userId)
