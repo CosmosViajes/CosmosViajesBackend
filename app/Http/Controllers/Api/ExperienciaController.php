@@ -49,6 +49,16 @@ class ExperienciaController extends Controller
         return response()->json(null, 204);
     }
 
+    public function deleteImage($id)
+    {
+        $experiencia = Experiencia::findOrFail($id);
+
+        $experiencia->image = null;
+        $experiencia->save();
+
+        return response()->json(['message' => 'Imagen eliminada correctamente.']);
+    }
+
     public function uploadImage(Request $request) {
         $request->validate([
             'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
