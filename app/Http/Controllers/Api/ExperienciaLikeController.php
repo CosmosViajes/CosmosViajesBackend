@@ -28,7 +28,6 @@ class ExperienciaLikeController extends Controller
         }
 
         $likesCount = ExperienciaLike::where('experiencia_id', $id)->count();
-        // Opcional: Actualiza el campo likes en la experiencia
         Experiencia::where('id', $id)->update(['likes' => $likesCount]);
 
         return response()->json([
@@ -39,10 +38,16 @@ class ExperienciaLikeController extends Controller
 
     public function userLikes(Request $request)
     {
+        $request->validate([
+            'user_id' => 'required|integer|exists:users,id'
+        ]);
 
-        $userId = $request->user()->id; // Ahora seguro que no es null
-        $likes = ExperienciaLike::where('user_id', $userId)->pluck('experiencia_id')->toArray();
-        
+        $userId = $request->query('user_id');
+        $likes = ExperienciaLike::where('user_id', $userId)
+                    ->pluck('experiencia_id')
+                    ->toArray();
+
         return response()->json($likes);
     }
+
 }
