@@ -1,7 +1,9 @@
 <?php
 
+// Esto dice en qué carpeta está este archivo
 namespace App\Http\Controllers;
 
+// Aquí decimos qué cosas vamos a usar en este archivo
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
@@ -15,31 +17,38 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\DB;
 
+// Esta clase se encarga de todo lo relacionado con los pagos en la web
 class PaymentController extends Controller
 {
+    // Esta función se usa cuando alguien quiere pagar un viaje
     public function processPayment(Request $request)
     {
+        // Aquí comprobamos que los datos que manda el usuario están bien
         $validated = $request->validate([
-            'user_id' => 'required|integer|exists:users,id',
-            'reservations' => 'required|array',
-            'reservations.*.reservation_id' => 'required|integer',
-            'reservations.*.amount' => 'required|numeric|min:0.01',
-            'total_amount' => 'required|numeric|min:0.01'
+            'user_id' => 'required|integer|exists:users,id', // El usuario debe existir
+            'reservations' => 'required|array', // Debe haber una lista de reservas
+            'reservations.*.reservation_id' => 'required|integer', // Cada reserva debe tener su id
+            'reservations.*.amount' => 'required|numeric|min:0.01', // Cada reserva debe tener un precio
+            'total_amount' => 'required|numeric|min:0.01' // El total debe ser mayor que cero
         ]);
       
+        // Creamos una respuesta con los datos del pago, como un ticket
         $response = [
-            'transaction_id' => Str::uuid(),
-            'status' => 'pending',
-            'timestamp' => Carbon::now()->toIso8601String(),
-            'currency' => 'EUR',
-            'amount' => $validated['total_amount']
+            'transaction_id' => Str::uuid(), // Un número único para este pago
+            'status' => 'pending', // Al principio está pendiente
+            'timestamp' => Carbon::now()->toIso8601String(), // Fecha y hora
+            'currency' => 'EUR', // Moneda
+            'amount' => $validated['total_amount'] // El total a pagar
         ];
 
+        // Guardamos el pago en la base de datos
         $payment = $this->createPaymentRecord($validated['user_id'], $response, $validated['reservations']);
 
+        // Devolvemos la respuesta al usuario
         return response()->json($response);
     }
 
+    // Esta función guarda el pago en la base de datos
     private function createPaymentRecord(int $userId, array $data, array $reservations): Payment
     {
         return Payment::create([
@@ -51,14 +60,15 @@ class PaymentController extends Controller
                 'currency' => $data['currency'],
                 'timestamp' => $data['timestamp'],
                 'reservations' => $reservations,
-                'payment_method' => 'Tarjeta terminada en ****'
+                'payment_method' => 'Tarjeta terminada en ****' // Aquí pondríamos los últimos números de la tarjeta
             ]
         ]);
     }
 
+    // Esta función manda un correo de confirmación cuando el pago va bien
     private function sendConfirmationEmail(Payment $payment): void
     {
-        $user = $payment->user()->first(); // Obtener usuario relacionado
+        $user = $payment->user()->first();
         $verificationUrl = URL::signedRoute('payment.verify', ['payment' => $payment->id]);
         
         Mail::to($user->email)->send(
@@ -66,28 +76,29 @@ class PaymentController extends Controller
         );
     }
 
+    // Esta función muestra todos los pagos que están pendientes (todavía no aprobados)
     public function pending()
     {
-        // Devuelve pagos pendientes
         return Payment::where('status', 'pending')->with('user')->get();
     }
 
+    // Esta función se usa para aceptar un pago (por ejemplo, cuando todo está bien)
     public function accept(Payment $payment)
     {
-        DB::beginTransaction();
+        DB::beginTransaction(); // Empezamos una operación que, si algo falla, se deshace todo
         
         try {
-            $payment->status = 'approved';
+            $payment->status = 'approved'; // Cambiamos el estado a aprobado
             $payment->save();
             
-            // 1. Obtener reservas asociadas al pago
+            // Buscamos todas las reservas de este usuario
             $reservations = ReservedTrip::where('user_id', $payment->user_id)->get();
 
             if ($reservations->isEmpty()) {
                 throw new \Exception('No hay reservas para archivar');
             }
 
-            // 2. Mover a tabla de historial
+            // Guardamos cada reserva en el historial (como un registro de lo que ha pasado)
             foreach ($reservations as $reservation) {
                 DB::table('reservation_histories')->insert([
                     'user_id' => $reservation->user_id,
@@ -98,13 +109,13 @@ class PaymentController extends Controller
                 ]);
             }
 
-            // 3. Eliminar reservas originales
+            // Borramos las reservas porque ya están archivadas
             ReservedTrip::where('user_id', $payment->user_id)->delete();
 
-            // 4. Enviar correo de confirmación
+            // Mandamos un correo de confirmación al usuario
             $this->sendConfirmationEmail($payment);
 
-            DB::commit();
+            DB::commit(); // Si todo va bien, guardamos los cambios
             
             return response()->json([
                 'message' => 'Pago aceptado y reservas archivadas',
@@ -112,7 +123,7 @@ class PaymentController extends Controller
             ]);
             
         } catch (\Exception $e) {
-            DB::rollBack();
+            DB::rollBack(); // Si algo falla, deshacemos todo
             return response()->json([
                 'message' => 'Error al procesar el pago',
                 'error' => $e->getMessage()
@@ -120,16 +131,18 @@ class PaymentController extends Controller
         }
     }
 
+    // Esta función se usa para rechazar un pago (por ejemplo, si algo está mal)
     public function reject(Payment $payment)
     {
-        $payment->status = 'rejected';
+        $payment->status = 'rejected'; // Cambiamos el estado a rechazado
         $payment->save();
         
-        $this->sendRejectionEmail($payment);
+        $this->sendRejectionEmail($payment); // Mandamos un correo diciendo que el pago fue rechazado
 
         return response()->json(['message' => 'Pago rechazado']);
     }
 
+    // Esta función manda un correo cuando el pago es rechazado
     private function sendRejectionEmail(Payment $payment): void
     {
         $user = $payment->user()->first();
@@ -140,6 +153,7 @@ class PaymentController extends Controller
         );
     }
 
+    // Esta función muestra todos los pagos de un usuario concreto
     public function userPayments($userId)
     {
         return Payment::with(['user:id,name,email'])
