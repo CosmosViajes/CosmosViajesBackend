@@ -19,7 +19,6 @@ return new class extends Migration
 
             $table->unique(['experiencia_id', 'user_id']);
             $table->foreign('experiencia_id')->references('id')->on('experiencias')->onDelete('cascade');
-            // user_id debe ser el id de tu tabla users
         });
     }   
 

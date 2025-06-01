@@ -79,7 +79,14 @@ Route::view('/support', 'support')->name('support');
 // Ver todos los proveedores (usuarios que ofrecen viajes)
 Route::get('providers', function () {
     return User::where('role', 'provider')
-        ->select('id', 'name')
+        ->select('id', 'name', 'email')
+        ->get();
+});
+
+// Ver todos las empresas
+Route::get('companies', function () {
+    return User::where('role', 'company')
+        ->select('id', 'name', 'email')
         ->get();
 });
 

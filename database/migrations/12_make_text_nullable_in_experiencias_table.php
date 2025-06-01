@@ -10,7 +10,7 @@ return new class extends Migration
     public function up()
     {
         Schema::table('experiencias', function (Blueprint $table) {
-            $table->text('text')->nullable()->change(); // Hacer la columna nullable
+            $table->text('text')->nullable()->change();
         });
     }
 
